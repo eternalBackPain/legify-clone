@@ -3,12 +3,14 @@ import './style.css'
 
 const SEARCH_DEBOUNCE_MS = 150
 const RESULT_LIMIT = 10
+const CANDIDATE_LIMIT = 30
 
 const form = document.querySelector('.form')
 const input = document.querySelector('.form-input')
 const app = document.querySelector('#app')
 
 app.innerHTML = `
+  <p class="status" aria-live="polite"></p>
   <ul class="results" aria-label="Search results"></ul>
 `
 
@@ -26,6 +28,7 @@ const supabase = hasSupabaseConfig
   : null
 
 let searchTimeoutId = null
+let activeSearchToken = 0
 
 form.addEventListener('submit', (event) => {
   event.preventDefault()
@@ -41,6 +44,8 @@ input.addEventListener('input', () => {
 input.focus()
 
 async function handleSearch(rawQuery) {
+  const searchToken = ++activeSearchToken
+
   if (!hasSupabaseConfig) {
     renderStatus('Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable search.')
     renderResults([])
@@ -48,22 +53,26 @@ async function handleSearch(rawQuery) {
   }
 
   if (!rawQuery) {
-    renderStatus('Start typing to search Commonwealth legislation.')
+    renderStatus('')
     renderResults([])
     return
   }
 
   renderStatus('Searching...')
 
-  const sanitizedQuery = rawQuery.replace(/[%_]/g, '')
+  const normalizedQuery = rawQuery.trim().toLowerCase()
+  const sanitizedQuery = normalizedQuery.replace(/[%_]/g, '')
 
   const { data, error } = await supabase
     .from('legislation')
     .select('id, title, year, type, url')
     .eq('jurisdiction', 'commonwealth')
     .ilike('title', `%${sanitizedQuery}%`)
-    .order('title', { ascending: true })
-    .limit(RESULT_LIMIT)
+    .limit(CANDIDATE_LIMIT)
+
+  if (searchToken !== activeSearchToken) {
+    return
+  }
 
   if (error) {
     renderStatus('Search is unavailable right now.')
@@ -72,14 +81,16 @@ async function handleSearch(rawQuery) {
     return
   }
 
-  if (!data.length) {
+  const rankedResults = rankResults(data, normalizedQuery).slice(0, RESULT_LIMIT)
+
+  if (!rankedResults.length) {
     renderStatus('No legislation found.')
     renderResults([])
     return
   }
 
-  renderStatus(`${data.length} result${data.length === 1 ? '' : 's'}.`)
-  renderResults(data)
+  renderStatus(`${rankedResults.length} result${rankedResults.length === 1 ? '' : 's'}.`)
+  renderResults(rankedResults)
 }
 
 function renderStatus(message) {
@@ -99,6 +110,40 @@ function renderResults(items) {
       `
     )
     .join('')
+}
+
+function rankResults(items, query) {
+  return [...items].sort((left, right) => {
+    const scoreDifference = getRelevanceScore(left.title, query) - getRelevanceScore(right.title, query)
+
+    if (scoreDifference !== 0) {
+      return scoreDifference
+    }
+
+    return left.title.localeCompare(right.title)
+  })
+}
+
+function getRelevanceScore(title, query) {
+  const normalizedTitle = title.toLowerCase()
+
+  if (normalizedTitle === query) {
+    return 0
+  }
+
+  if (normalizedTitle.startsWith(query)) {
+    return 1
+  }
+
+  if (normalizedTitle.split(/\s+/).some((word) => word.startsWith(query))) {
+    return 2
+  }
+
+  if (normalizedTitle.includes(query)) {
+    return 3
+  }
+
+  return 4
 }
 
 function formatMeta(item) {
