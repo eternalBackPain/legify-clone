@@ -20,6 +20,16 @@ async function main() {
 
   console.log(`Fetched ${records.length} legislation records from Federal Register.`)
 
+  const { error: deleteError } = await supabase
+    .from('legislation')
+    .delete()
+    .eq('source', 'federal-register')
+    .eq('jurisdiction', 'commonwealth')
+
+  if (deleteError) {
+    throw deleteError
+  }
+
   for (let index = 0; index < records.length; index += UPSERT_BATCH_SIZE) {
     const batch = records.slice(index, index + UPSERT_BATCH_SIZE)
     const { error } = await supabase.from('legislation').upsert(batch, { onConflict: 'id' })
@@ -38,7 +48,7 @@ async function fetchFederalTitles() {
 
   while (true) {
     const url = new URL(API_BASE_URL)
-    url.searchParams.set('$select', 'id,name,year,collection,subCollection')
+    url.searchParams.set('$select', 'id,name,year,collection,subCollection,isPrincipal,isInForce')
     url.searchParams.set('$orderby', 'id')
     url.searchParams.set('$top', String(PAGE_SIZE))
     url.searchParams.set('$skip', String(skip))
@@ -74,6 +84,10 @@ async function fetchFederalTitles() {
 
 function mapTitleToLegislationRow(item) {
   if (!item?.id || !item?.name || !item?.year) {
+    return null
+  }
+
+  if (!item.isPrincipal || !item.isInForce) {
     return null
   }
 
