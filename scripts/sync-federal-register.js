@@ -8,7 +8,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 const API_BASE_URL = 'https://api.prod.legislation.gov.au/v1/titles'
-const PAGE_SIZE = 1000
+const PAGE_SIZE = 100
 const UPSERT_BATCH_SIZE = 500
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -43,10 +43,17 @@ async function fetchFederalTitles() {
     url.searchParams.set('$top', String(PAGE_SIZE))
     url.searchParams.set('$skip', String(skip))
 
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'legify-clone/1.0',
+      },
+    })
 
     if (!response.ok) {
-      throw new Error(`Federal Register request failed with ${response.status}.`)
+      throw new Error(
+        `Federal Register request failed with ${response.status}: ${await response.text()}`
+      )
     }
 
     const payload = await response.json()
