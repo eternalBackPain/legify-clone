@@ -56,7 +56,7 @@ async function fetchFederalTitles() {
     const response = await fetch(url, {
       headers: {
         Accept: 'application/json',
-        'User-Agent': 'legify-clone/1.0',
+        'User-Agent': 'Legification/1.0',
       },
     })
 

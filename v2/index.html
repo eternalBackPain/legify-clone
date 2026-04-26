@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legification</title>
+  </head>
+  <body>
+    <h1>Legification</h1>
+    <form class="form" aria-label="Legislation search">
+      <input
+        id="legislation-search"
+        class="form-input"
+        type="search"
+        name="q"
+        placeholder="Start typing the name of an Act or Regulation"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <fieldset class="type-filters" aria-label="Legislation type filters">
+        <label class="type-filter">
+          <input type="checkbox" name="type" value="Act" checked />
+          Act
+        </label>
+        <label class="type-filter">
+          <input
+            type="checkbox"
+            name="type"
+            value="Legislative-instrument"
+            checked
+          />
+          Legislative instrument
+        </label>
+      </fieldset>
+    </form>
+    <div id="app"></div>
+    <div class="description">
+      <p>
+        Legification helps you quickly identify the most authoritative version of Australian legislation. Legification is inspired by the former
+        Legify.com.au, which serviced our legal community for more than 13
+        years.
+      </p>
+      <p>
+        Currently, Legification supports all principal and in-force Commonwealth
+        acts and legislative instruments. Legislation from states and
+        territories will be implemented soon. For any support issues, please
+        contact myself at
+        <a href="mailto:johnnaoom@gmail.com">johnnaoom@gmail.com</a>.
+      </p>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
